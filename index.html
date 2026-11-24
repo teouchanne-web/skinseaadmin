@@ -1377,32 +1377,51 @@
         margin: 10px 0;
       }
     </style>
-  
+
     <style id="skinsea-mobile-stock-scroll">
       @media (max-width: 750px) {
-        #stock, #stock .stock-scroll { min-width: 0; max-width: 100%; }
+        #stock,
         #stock .stock-scroll {
-          width: 100%; overflow-x: auto !important; overflow-y: auto !important;
-          touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch;
-          scrollbar-gutter: auto;
-          height: 65vh; height: 65dvh;
+          min-width: 0;
+          max-width: 100%;
         }
-        #stock .stock-scroll #stockTable { width: max-content; min-width: 100%; }
+        #stock .stock-scroll {
+          width: 100%;
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          touch-action: pan-x pan-y;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-gutter: auto;
+          height: 65vh;
+          height: 65dvh;
+        }
+        #stock .stock-scroll #stockTable {
+          width: max-content;
+          min-width: 100%;
+        }
         #stock .stock-scroll #stockTable tbody td:nth-child(-n + 3) {
-          position: static !important; left: auto !important; z-index: auto;
+          position: static !important;
+          left: auto !important;
+          z-index: auto;
         }
         #stock .stock-scroll #stockTable thead th:nth-child(-n + 3) {
-          position: sticky !important; top: 0; left: auto !important; z-index: 30;
+          position: sticky !important;
+          top: 0;
+          left: auto !important;
+          z-index: 30;
         }
         #stock .stock-scroll #stockTable th:nth-child(3),
         #stock .stock-scroll #stockTable td:nth-child(3) {
-          width: 190px !important; min-width: 190px !important;
-          max-width: 190px !important; box-shadow: none;
-          white-space: normal; overflow-wrap: anywhere;
+          width: 190px !important;
+          min-width: 190px !important;
+          max-width: 190px !important;
+          box-shadow: none;
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
       }
     </style>
-</head>
+  </head>
   <body>
     <header>
       <div class="brand">
@@ -1916,7 +1935,7 @@
                 required
             /></label>
 
-            
+            <label
               >დამატებითი ხარჯი ($)<input
                 id="nbExtra"
                 type="number"
