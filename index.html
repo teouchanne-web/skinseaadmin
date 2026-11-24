@@ -1242,6 +1242,14 @@
         font-size: 11px;
         font-weight: 700;
       }
+      #ordersTab .pill.confirmed {
+        background: #dceeff;
+        color: #2468a2;
+      }
+      #ordersTab .pill.shipped {
+        background: #eee3fa;
+        color: #7950a0;
+      }
       #ordersTab .pill.done {
         background: #e6f5e9;
         color: #31714c;
@@ -4689,7 +4697,7 @@
                   const priceHtml = bd
                     ? `<br><b>პროდუქცია:</b> ${safe(money(bd.product))}<br><b>კურიერი:</b> ${safe(money(bd.delivery))}`
                     : `<br><span class="muted">პროდუქციისა და კურიერის თანხები ცალ-ცალკე არ არის შენახული</span>`;
-                  return `<article class="order"><div class="row"><h3>#${safe(o.id)} · ${safe(o.customer_name || "უსახელო")}</h3><span class="pill ${st === "delivered" ? "done" : st === "cancelled" ? "cancel" : ""}">${safe(statusLabels[st] || st)}</span></div><p class="muted">${safe(date)}</p><p><b>ტელ:</b> ${safe(o.phone || "—")}<br><b>მისამართი:</b> ${safe(o.address || "—")}<br><b>პროდუქტები:</b> ${safe(getItems(o))}${priceHtml}<br><b>სულ გადასახდელი:</b> ${safe(money(o.total))}${o.comment ? "<br><b>შენიშვნა:</b> " + safe(o.comment) : ""}</p><div class="actions"><select aria-label="შეკვეთის სტატუსი" data-status="${o.id}">${opts}</select><button data-save="${o.id}" class="secondary">💾 სტატუსის შენახვა</button><button data-edit="${o.id}" class="outline">✏️ რედაქტირება</button><button data-delete="${o.id}" class="outline" style="color:#a34141;border-color:#f0cccc">🗑️ წაშლა</button><button data-copy="${o.id}" class="outline">📋 ტექსტის კოპირება</button></div></article>`;
+                  return `<article class="order"><div class="row"><h3>#${safe(o.id)} · ${safe(o.customer_name || "უსახელო")}</h3><span class="pill ${st === "delivered" ? "done" : st === "cancelled" ? "cancel" : st === "confirmed" ? "confirmed" : st === "shipped" ? "shipped" : ""}">${safe(statusLabels[st] || st)}</span></div><p class="muted">${safe(date)}</p><p><b>ტელ:</b> ${safe(o.phone || "—")}<br><b>მისამართი:</b> ${safe(o.address || "—")}<br><b>პროდუქტები:</b> ${safe(getItems(o))}${priceHtml}<br><b>სულ გადასახდელი:</b> ${safe(money(o.total))}${o.comment ? "<br><b>შენიშვნა:</b> " + safe(o.comment) : ""}</p><div class="actions"><select aria-label="შეკვეთის სტატუსი" data-status="${o.id}">${opts}</select><button data-save="${o.id}" class="secondary">💾 სტატუსის შენახვა</button><button data-edit="${o.id}" class="outline">✏️ რედაქტირება</button><button data-delete="${o.id}" class="outline" style="color:#a34141;border-color:#f0cccc">🗑️ წაშლა</button><button data-copy="${o.id}" class="outline">📋 ტექსტის კოპირება</button></div></article>`;
                 })
                 .join("")
             : '<div class="empty">შეკვეთები ვერ მოიძებნა.</div>';
