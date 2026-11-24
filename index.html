@@ -794,6 +794,10 @@
         padding-top: 15px;
         padding-bottom: 15px;
       }
+      .stock-selected-filter.active {
+        color: #fff !important;
+        -webkit-text-fill-color: #fff !important;
+      }
       .row-delete {
         background: #b9505d;
       }
@@ -2553,8 +2557,18 @@
         // Keep the stock table DOM, scroll position and checkbox focus intact.
         save({ skipRender: true });
       }
-      const selectedStockIds = new Set();
-      let stockSelectedOnly = false;
+      const STOCK_SELECTION_KEY = "skinsea_stock_selection_v1";
+      let storedStockSelection = {};
+      try {
+        storedStockSelection = JSON.parse(localStorage.getItem(STOCK_SELECTION_KEY) || "{}") || {};
+      } catch (e) {}
+      const selectedStockIds = new Set(Array.isArray(storedStockSelection.ids) ? storedStockSelection.ids.map(Number).filter(Number.isFinite) : []);
+      let stockSelectedOnly = storedStockSelection.only === true;
+      function persistStockSelection() {
+        try {
+          localStorage.setItem(STOCK_SELECTION_KEY, JSON.stringify({ ids: [...selectedStockIds], only: stockSelectedOnly }));
+        } catch (e) { console.warn("Stock selection could not be saved", e); }
+      }
       function toggleStockSelectedOnly() {
         stockSelectedOnly = !stockSelectedOnly;
         filterStock();
@@ -2578,6 +2592,9 @@
         filterStock();
       }
       function updateStockSelectionUI() {
+        const validIds = new Set(db.items.map(item => Number(item.id)));
+        for (const id of selectedStockIds) if (!validIds.has(id)) selectedStockIds.delete(id);
+        persistStockSelection();
         const count = selectedStockIds.size;
         document.querySelectorAll(".stock-selected-filter").forEach((btn) => {
           btn.textContent = stockSelectedOnly ? "ყველას ჩვენება" : "🔎 მხოლოდ მონიშნული";
