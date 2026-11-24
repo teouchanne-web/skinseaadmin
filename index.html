@@ -81,7 +81,7 @@
         border-radius: 18px;
         padding: 19px;
         margin: 12px 0;
-        box-shadow: 0 5px 20px #1234 05;
+        box-shadow: 0 5px 20px #123405;
       }
       .cards {
         display: grid;
@@ -797,7 +797,7 @@
       .row-delete {
         background: #b9505d;
       }
-      \n .history-controls {
+      .history-controls {
         display: flex;
         align-items: center;
         gap: 7px;
@@ -2554,10 +2554,15 @@
         save({ skipRender: true });
       }
       const selectedStockIds = new Set();
+      let stockSelectedOnly = false;
+      function toggleStockSelectedOnly() {
+        stockSelectedOnly = !stockSelectedOnly;
+        filterStock();
+      }
       function toggleStockSelection(id, checked) {
         if (checked) selectedStockIds.add(id);
         else selectedStockIds.delete(id);
-        updateStockSelectionUI();
+        filterStock();
       }
       function selectAllVisibleStock(checked) {
         document
@@ -2570,10 +2575,15 @@
             if (checked) selectedStockIds.add(id);
             else selectedStockIds.delete(id);
           });
-        updateStockSelectionUI();
+        filterStock();
       }
       function updateStockSelectionUI() {
         const count = selectedStockIds.size;
+        document.querySelectorAll(".stock-selected-filter").forEach((btn) => {
+          btn.textContent = stockSelectedOnly ? "ყველას ჩვენება" : "🔎 მხოლოდ მონიშნული";
+          btn.setAttribute("aria-pressed", String(stockSelectedOnly));
+          btn.classList.toggle("active", stockSelectedOnly);
+        });
         document
           .querySelectorAll(".stock-selected-count")
           .forEach((el) => (el.textContent = `მონიშნულია: ${count}`));
@@ -2612,7 +2622,7 @@
         try {
           save();
           selectedStockIds.clear();
-          updateStockSelectionUI();
+          filterStock();
         } catch (e) {
           db.items = previous;
           alert("წაშლა ვერ მოხერხდა: " + e.message);
@@ -2867,7 +2877,7 @@
           `<div class="flex"><div><h1>კვირეული მარაგი</h1><button type="button" class="add-product-btn" onclick="openProductModal()">➕ ახალი პროდუქტი</button><p class="muted">თითოეული ცალი ცალკე სტრიქონად — როგორც Excel-ში</p></div><div class="flex"><input id="stockSearch" class="search" placeholder="🔎 მოძებნე პროდუქტი..." oninput="filterStock()"><select id="stockBatch" onchange="rememberStockBatch()"><option value="">ყველა პარტია</option>${db.batches.map((b) => `<option>${safe(b.name)}</option>`).join("")}</select></div></div>
           ${weekButtons}
           <div style="display:flex;justify-content:flex-end;margin:8px 0;gap:8px;flex-wrap:wrap"><button type="button" class="alt" onclick="openBulkRate()">💱 კურსის მასობრივი ცვლილება</button><div class="column-manager"><button type="button" class="alt" onclick="toggleStockColumnMenu(event)">👁️ სვეტების მართვა ▾</button><div id="stockColumnMenu" class="column-manager-menu hidden"></div></div></div>
-          <div class="flex" style="gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px"><input class="stock-select-all" type="checkbox" onchange="selectAllVisibleStock(this.checked)"> ყველა ნაჩვენების მონიშვნა</label><span class="stock-selected-count muted">მონიშნულია: ${selectedStockIds.size}</span><button type="button" class="tiny row-delete stock-bulk-delete" ${selectedStockIds.size ? "" : "disabled"} onclick="deleteSelectedStock()">🗑 მონიშნულების წაშლა</button></div>
+          <div class="flex" style="gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px"><input class="stock-select-all" type="checkbox" onchange="selectAllVisibleStock(this.checked)"> ყველა ნაჩვენების მონიშვნა</label><span class="stock-selected-count muted">მონიშნულია: ${selectedStockIds.size}</span><button type="button" class="tiny row-delete stock-bulk-delete" ${selectedStockIds.size ? "" : "disabled"} onclick="deleteSelectedStock()">🗑 მონიშნულების წაშლა</button><button type="button" class="alt tiny stock-selected-filter" aria-pressed="false" onclick="toggleStockSelectedOnly()">🔎 მხოლოდ მონიშნული</button></div>
           <div class="panel scroll stock-scroll"><table id="stockTable"><thead><tr><th style="min-width:44px">☑</th>${["#", "პროდუქტი", "ვადა", "შესყიდვა $", "დამატებითი $", "კურსი", "თვითღ. ₾", "გასაყიდი ფასი ₾", "მოგება ₾", "სულ გაიყიდა", "დარჩა", ...headers.map((x) => x[1]), "პარტია", "მოქმედებები"].map((x) => `<th>${safe(x)}</th>`).join("")}</tr></thead><tbody>${db.items
             .map(
               (
@@ -3230,7 +3240,9 @@
           .forEach((tr) =>
             tr.classList.toggle(
               "hidden",
-              !tr.dataset.name.includes(q) || (!!b && tr.dataset.batch !== b),
+              !tr.dataset.name.includes(q) ||
+                (!!b && tr.dataset.batch !== b) ||
+                (stockSelectedOnly && !selectedStockIds.has(Number(tr.querySelector(".stock-row-select")?.dataset.id))),
             ),
           );
         updateStockSelectionUI();
