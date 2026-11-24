@@ -2565,14 +2565,27 @@
       const STOCK_SELECTION_KEY = "skinsea_stock_selection_v1";
       let storedStockSelection = {};
       try {
-        storedStockSelection = JSON.parse(localStorage.getItem(STOCK_SELECTION_KEY) || "{}") || {};
+        storedStockSelection =
+          JSON.parse(localStorage.getItem(STOCK_SELECTION_KEY) || "{}") || {};
       } catch (e) {}
-      const selectedStockIds = new Set(Array.isArray(storedStockSelection.ids) ? storedStockSelection.ids.map(Number).filter(Number.isFinite) : []);
+      const selectedStockIds = new Set(
+        Array.isArray(storedStockSelection.ids)
+          ? storedStockSelection.ids.map(Number).filter(Number.isFinite)
+          : [],
+      );
       let stockSelectedOnly = storedStockSelection.only === true;
       function persistStockSelection() {
         try {
-          localStorage.setItem(STOCK_SELECTION_KEY, JSON.stringify({ ids: [...selectedStockIds], only: stockSelectedOnly }));
-        } catch (e) { console.warn("Stock selection could not be saved", e); }
+          localStorage.setItem(
+            STOCK_SELECTION_KEY,
+            JSON.stringify({
+              ids: [...selectedStockIds],
+              only: stockSelectedOnly,
+            }),
+          );
+        } catch (e) {
+          console.warn("Stock selection could not be saved", e);
+        }
       }
       function toggleStockSelectedOnly() {
         stockSelectedOnly = !stockSelectedOnly;
@@ -2597,12 +2610,15 @@
         filterStock();
       }
       function updateStockSelectionUI() {
-        const validIds = new Set(db.items.map(item => Number(item.id)));
-        for (const id of selectedStockIds) if (!validIds.has(id)) selectedStockIds.delete(id);
+        const validIds = new Set(db.items.map((item) => Number(item.id)));
+        for (const id of selectedStockIds)
+          if (!validIds.has(id)) selectedStockIds.delete(id);
         persistStockSelection();
         const count = selectedStockIds.size;
         document.querySelectorAll(".stock-selected-filter").forEach((btn) => {
-          btn.textContent = stockSelectedOnly ? "ყველას ჩვენება" : "🔎 მხოლოდ მონიშნული";
+          btn.textContent = stockSelectedOnly
+            ? "ყველას ჩვენება"
+            : "🔎 მხოლოდ მონიშნული";
           btn.setAttribute("aria-pressed", String(stockSelectedOnly));
           btn.classList.toggle("active", stockSelectedOnly);
         });
@@ -2890,8 +2906,8 @@
           <span class="muted">ნაჩვენებია ${shown} კვირა (${stockWeekStart + 1}–${stockWeekEnd}) / ${db.weeks.length} • დამალული კვირების მონაცემები და ჯამები შენარჩუნებულია</span>
           <div class="flex" style="gap:6px;justify-content:flex-end">
           ${stockWeekStart > 0 ? `<button type="button" class="alt" onclick="restoreOldStockWeek()">◀ წინა კვირის გამოჩენა</button>` : ""}
-          ${shown > 1 ? `<button type="button" class="alt" onclick="hideOldStockWeek()">🙈 წინა კვირის დამალვა</button>` : ""}
-          ${shown > 1 ? `<button type="button" class="alt" onclick="hideNewStockWeek()">🙈 შემდეგი კვირის დამალვა</button>` : ""}
+          <button type="button" class="alt" onclick="hideOldStockWeek()" ${shown > 1 ? "" : "disabled"} style="${shown > 1 ? "" : "opacity:0.42;cursor:not-allowed"}">🙈 წინა კვირის დამალვა</button>
+          <button type="button" class="alt" onclick="hideNewStockWeek()" ${shown > 1 ? "" : "disabled"} style="${shown > 1 ? "" : "opacity:0.42;cursor:not-allowed"}">🙈 შემდეგი კვირის დამალვა</button>
           ${more ? `<button type="button" class="alt" onclick="showMoreStockWeeks()">➕ შემდეგი კვირა</button>` : ""}
           ${db.weeks.length > 2 ? `<button type="button" class="alt" onclick="showLatestStockWeeks()">📅 ბოლო 2 კვირა</button>` : ""}
           </div>
@@ -3265,7 +3281,10 @@
               "hidden",
               !tr.dataset.name.includes(q) ||
                 (!!b && tr.dataset.batch !== b) ||
-                (stockSelectedOnly && !selectedStockIds.has(Number(tr.querySelector(".stock-row-select")?.dataset.id))),
+                (stockSelectedOnly &&
+                  !selectedStockIds.has(
+                    Number(tr.querySelector(".stock-row-select")?.dataset.id),
+                  )),
             ),
           );
         updateStockSelectionUI();
