@@ -2586,6 +2586,7 @@
         db.items[idx].ads[key] = checked ? "✓" : "—";
         // Keep the stock table DOM, scroll position and checkbox focus intact.
         save({ skipRender: true });
+        filterStock();
       }
       const STOCK_SELECTION_KEY = "skinsea_stock_selection_v1";
       let storedStockSelection = {};
@@ -2942,7 +2943,7 @@
         $("stock").innerHTML =
           `<div class="flex"><div><h1>კვირეული მარაგი</h1><button type="button" class="add-product-btn" onclick="openProductModal()">➕ ახალი პროდუქტი</button><p class="muted">თითოეული ცალი ცალკე სტრიქონად — როგორც Excel-ში</p></div><div class="flex"><input id="stockSearch" class="search" placeholder="🔎 მოძებნე პროდუქტი..." oninput="filterStock()"><select id="stockBatch" onchange="rememberStockBatch()"><option value="">ყველა პარტია</option>${db.batches.map((b) => `<option>${safe(b.name)}</option>`).join("")}</select></div></div>
           ${weekButtons}
-          <div style="margin:8px 0"><select id="stockSaleFilter" onchange="setStockSaleFilter(this.value)">${[["active","აქტიური მარაგი"],["all","ყველა პროდუქტი"],["sold","გაყიდული"]].map(([v,l])=>`<option value="${v}" ${stockSaleFilter===v?"selected":""}>${l}</option>`).join("")}</select></div>
+          <div style="margin:8px 0"><select id="stockSaleFilter" onchange="setStockSaleFilter(this.value)">${[["active","აქტიური მარაგი"],["all","ყველა პროდუქტი"],["sold","გაყიდული"],["ads","📣 ჩართული რეკლამით"],["noads","რეკლამის გარეშე"]].map(([v,l])=>`<option value="${v}" ${stockSaleFilter===v?"selected":""}>${l}</option>`).join("")}</select></div>
           <div style="display:flex;justify-content:flex-end;margin:8px 0;gap:8px;flex-wrap:wrap"><button type="button" class="alt" onclick="openBulkRate()">💱 კურსის მასობრივი ცვლილება</button><div class="column-manager"><button type="button" class="alt" onclick="toggleStockColumnMenu(event)">👁️ სვეტების მართვა ▾</button><div id="stockColumnMenu" class="column-manager-menu hidden"></div></div></div>
           <div class="flex" style="gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px"><input class="stock-select-all" type="checkbox" onchange="selectAllVisibleStock(this.checked)"> ყველა ნაჩვენების მონიშვნა</label><span class="stock-selected-count muted">მონიშნულია: ${selectedStockIds.size}</span><button type="button" class="tiny row-delete stock-bulk-delete" ${selectedStockIds.size ? "" : "disabled"} onclick="deleteSelectedStock()">🗑 მონიშნულების წაშლა</button><button type="button" class="alt tiny stock-selected-filter" aria-pressed="false" onclick="toggleStockSelectedOnly()">🔎 მხოლოდ მონიშნული</button></div>
           <div class="panel scroll stock-scroll"><table id="stockTable"><thead><tr><th style="min-width:44px">☑</th>${["#", "პროდუქტი", "ვადა", "შესყიდვა $", "დამატებითი $", "კურსი", "თვითღ. ₾", "გასაყიდი ფასი ₾", "მოგება ₾", "სულ გაიყიდა", "დარჩა", ...headers.map((x) => x[1]), "პარტია", "მოქმედებები"].map((x) => `<th>${safe(x)}</th>`).join("")}</tr></thead><tbody>${db.items
@@ -3309,6 +3310,8 @@
               "hidden",
               (stockSaleFilter === "active" && tr.dataset.sold === "1") ||
                 (stockSaleFilter === "sold" && tr.dataset.sold !== "1") ||
+                (stockSaleFilter === "ads" && !tr.querySelector(".ad-check input:checked")) ||
+                (stockSaleFilter === "noads" && !!tr.querySelector(".ad-check input:checked")) ||
                 !tr.dataset.name.includes(q) ||
                 (!!b && tr.dataset.batch !== b) ||
                 (stockSelectedOnly &&
