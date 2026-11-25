@@ -1061,6 +1061,11 @@
         font-weight: 800;
         font-size: 16px;
       }
+      /* Compact desktop navigation; mobile remains scrollable. */
+      @media (min-width: 1100px) {
+        .tabs { gap: 6px; flex-wrap: wrap; }
+        .tabs button { padding: 9px 10px; font-size: 12px; }
+      }
     </style>
     <style>
       #ordersTab {
@@ -1514,7 +1519,7 @@
         ><button data-tab="expenses">💳 ხარჯები</button
         ><button data-tab="batches">🚚 შესყიდვების პარტიები</button
         ><button data-tab="ordersTab">🛍️ შეკვეთები</button
-        ><button data-tab="docsTab">📁 დოკუმენტები და ინვოისები</button>
+        ><button data-tab="docsTab">📁 დოკები და ინვოისები</button>
       </div>
       <div id="notice" class="muted">
         მონაცემები ამ ბრაუზერში ინახება. შეკვეთების ტაბი Supabase-ს უკავშირდება;
