@@ -2446,7 +2446,27 @@
       setInterval(refreshFinance, 10000);
       window.addEventListener("focus", refreshFinance);
       window.addEventListener("beforeunload", e=>{if(financeBusy || financeFailed){e.preventDefault();e.returnValue="";}});
+      // Recalculate only batches whose product purchase totals changed.
+      // Preserve manually entered estimates for untouched batches and all extra expenses.
+      function batchPurchaseCents(items) {
+        const totals = new Map();
+        for (const item of items || []) {
+          totals.set(item.batch, (totals.get(item.batch) || 0) + Math.round(n(item.purchase) * 100));
+        }
+        return totals;
+      }
+      function syncBatchPurchaseTotals(previous) {
+        const before = batchPurchaseCents(previous.items);
+        const after = batchPurchaseCents(db.items);
+        for (const batch of db.batches) {
+          const oldTotal = before.get(batch.name) || 0;
+          const newTotal = after.get(batch.name) || 0;
+          if (oldTotal !== newTotal) batch.purchase = newTotal / 100;
+        }
+      }
       function save(options = {}) {
+        if (financeVersion === null) throw Error("Supabase ჯერ არ ჩაიტვირთა");
+        syncBatchPurchaseTotals(JSON.parse(lastSavedSnapshot));
         const next = JSON.stringify(db);
         if (next !== lastSavedSnapshot) {
           undoStack.push(lastSavedSnapshot);
