@@ -1538,7 +1538,7 @@
         ><button data-tab="ordersTab">🛍️ შეკვეთები</button
         ><button data-tab="docsTab">📁 დოკები და ინვოისები</button>
       </div>
-      <div id="notice" class="muted" style="height: 20px;"></div>
+      <div id="financeSyncStatus" role="status" style="padding:8px;color:#176482;font-weight:700"></div><div id="notice" class="muted" style="height: 20px;"></div>
      
       <section id="overview"></section>
       <section id="stock" class="hidden"></section>
@@ -2377,6 +2377,75 @@
         if (u) u.disabled = !undoStack.length;
         if (r) r.disabled = !redoStack.length;
       }
+      let financeClient = null, financeVersion = null, financeBusy = false, financeFailed = false;
+      const syncStatus = (msg) => $("financeSyncStatus").textContent = msg;
+      function financeLock(on) {
+        financeBusy = on;
+        $("protectedMain").inert = on;
+        $("protectedControls").inert = on;
+        document.querySelectorAll(".product-modal,.extra-dialog-backdrop").forEach(el=>el.inert=on);
+      }
+      function validFinance(data) {
+        return data && ["items","batches","expenses","weeks","headers"].every(k => Array.isArray(data[k]));
+      }
+      async function readFinance(client) {
+        const {data,error} = await client.from("skinsea_finance").select("data,version").eq("id",1).single();
+        if(error) throw error;
+        if(!validFinance(data?.data) || !Number.isSafeInteger(data.version)) throw Error("მონაცემების ფორმატი არასწორია");
+        return data;
+      }
+      function applyFinance(row) {
+        db = row.data;
+        financeVersion = row.version;
+        lastSavedSnapshot = JSON.stringify(db);
+        undoStack.length = redoStack.length = 0;
+        const w = loadStockWeekWindow(); stockWeekStart=w.start; stockWeekEnd=w.end;
+        renderAll(); updateHistoryButtons();
+        document.dispatchEvent(new CustomEvent("skinseaDocBatches",{detail:db.batches.map(b=>b.name)}));
+        syncStatus("☁ Supabase — სინქრონიზებულია");
+      }
+      async function startFinance(client) {
+        if(financeClient === client && financeVersion !== null) return;
+        financeClient = client;
+        const row=await readFinance(client);
+        stockSaleFilter="active";
+        applyFinance(row);
+      }
+      async function pushFinance(snapshot) {
+        if(financeBusy || financeFailed || financeVersion === null) return;
+        financeLock(true);
+        syncStatus("☁ მონაცემები ინახება…");
+        try {
+          const {data,error} = await financeClient.from("skinsea_finance").update({data:JSON.parse(snapshot),version:financeVersion+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",financeVersion).select("version").maybeSingle();
+          if(error) throw error;
+          if(!data) throw Error("სხვა მოწყობილობაზე მონაცემები შეიცვალა");
+          financeVersion=data.version;
+          syncStatus("☁ Supabase — სინქრონიზებულია");
+          financeLock(false);
+        } catch(e) {
+          financeFailed=true;
+          financeLock(false);
+          syncStatus("⚠ ცვლილების შენახვა ვერ დადასტურდა: "+e.message);
+          const recovery=document.createElement("div");
+          recovery.style.cssText="position:fixed;inset:0;background:#173b4bee;z-index:99999;display:grid;place-content:center;padding:24px;color:white;gap:12px";
+          const msg=document.createElement("p"); msg.textContent="ცვლილება ვერ დადასტურდა. შეინახე შენი ასლი და შემდეგ ჩატვირთე საერთო ბაზის უახლესი მონაცემები. ძველი ასლი ავტომატურად არ გადაიწერება.";
+          const backup=document.createElement("button"); backup.textContent="⬇ შეუნახავი ცვლილების ასლი"; backup.onclick=exportData;
+          const reload=document.createElement("button"); reload.textContent="უახლესი მონაცემების ჩატვირთვა"; reload.onclick=()=>{if(confirm("ადგილობრივი შეუნახავი ცვლილება დაიკარგება. ასლი შენახული გაქვს?")) location.reload();};
+          recovery.append(msg,backup,reload); document.body.append(recovery);
+        }
+      }
+      async function refreshFinance() {
+        if(!financeClient || financeVersion===null || financeBusy || financeFailed || document.hidden || $("protectedMain").hidden) return;
+        if(document.activeElement?.matches("input,textarea,select,[contenteditable=true]") || document.querySelector(".product-modal:not(.hidden),.extra-dialog-backdrop:not(.hidden)")) return;
+        const version=financeVersion;
+        try {
+          const row=await readFinance(financeClient);
+          if(!financeBusy && !financeFailed && financeVersion===version && row.version!==version && !document.activeElement?.matches("input,textarea,select,[contenteditable=true]") && !document.querySelector(".product-modal:not(.hidden),.extra-dialog-backdrop:not(.hidden)")) applyFinance(row);
+        } catch(e) { if(!financeBusy && !financeFailed) syncStatus("⚠ კავშირი ვერ დადასტურდა — ცვლილებები შეამოწმე"); }
+      }
+      setInterval(refreshFinance, 10000);
+      window.addEventListener("focus", refreshFinance);
+      window.addEventListener("beforeunload", e=>{if(financeBusy || financeFailed){e.preventDefault();e.returnValue="";}});
       function save(options = {}) {
         const next = JSON.stringify(db);
         if (next !== lastSavedSnapshot) {
@@ -2385,24 +2454,26 @@
           redoStack.length = 0;
           lastSavedSnapshot = next;
         }
-        localStorage.setItem(STORE, next);
+        if (financeVersion !== null) void pushFinance(next);
+        else throw Error("Supabase ჯერ არ ჩაიტვირთა");
         if (!options.skipRender) renderAll();
         updateHistoryButtons();
       }
       function restoreHistory(snapshot) {
         db = JSON.parse(snapshot);
         lastSavedSnapshot = snapshot;
-        localStorage.setItem(STORE, snapshot);
+        if (financeVersion !== null) void pushFinance(snapshot);
+        else throw Error("Supabase ჯერ არ ჩაიტვირთა");
         renderAll();
         updateHistoryButtons();
       }
       function undoChange() {
-        if (!undoStack.length) return;
+        if (financeBusy || financeFailed || financeVersion === null || !undoStack.length) return;
         redoStack.push(lastSavedSnapshot);
         restoreHistory(undoStack.pop());
       }
       function redoChange() {
-        if (!redoStack.length) return;
+        if (financeBusy || financeFailed || financeVersion === null || !redoStack.length) return;
         undoStack.push(lastSavedSnapshot);
         restoreHistory(redoStack.pop());
       }
@@ -4722,6 +4793,15 @@
         async function checkAuth() {
           const { data, error } = await db.auth.getUser();
           const ok = !error && data?.user?.id === ADMIN_ID;
+          if(ok) {
+            try { await startFinance(db); }
+            catch(e) {
+              $("globalAuth").hidden=false; $("login").hidden=true;
+              $("protectedMain").hidden=true; $("protectedControls").hidden=true;
+              $("authNotice").textContent="ფინანსების ჩატვირთვა ვერ მოხერხდა: "+e.message+" — განაახლე გვერდი.";
+              return;
+            }
+          } else { financeClient=null; financeVersion=null; }
           $("globalAuth").hidden = ok;
           $("login").hidden = ok;
           $("protectedMain").hidden = !ok;
