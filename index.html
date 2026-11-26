@@ -4718,6 +4718,12 @@
               })[c],
           );
         }
+        function orderUnitPrice(item) {
+          const value = item?.unit_price ?? item?.price;
+          if (value == null || String(value).trim() === "") return undefined;
+          const n = Number(value);
+          return Number.isFinite(n) && n >= 0 ? n : undefined;
+        }
         function breakdown(row) {
           try {
             const a =
@@ -4740,8 +4746,19 @@
                 delivery: Number(item.delivery_fee),
               };
             }
+            // Online orders store historical unit prices in price.
+            if (Array.isArray(a) && a.length && !item && row.total != null && String(row.total).trim() !== "") {
+              const total = Number(row.total);
+              if (Number.isFinite(total) && total >= 0 && a.every(x =>
+                x && typeof x === "object" && orderUnitPrice(x) !== undefined &&
+                Number.isSafeInteger(Number(x.quantity ?? 1)) && Number(x.quantity ?? 1) >= 1)) {
+                const cents = a.reduce((sum, x) => sum + Math.round(orderUnitPrice(x) * Number(x.quantity ?? 1) * 100), 0);
+                const delivery = Math.round(total * 100) - cents;
+                if (delivery >= 0) return { product: cents / 100, delivery: delivery / 100 };
+              }
+            }
           } catch {}
-          return null; // ძველი შეკვეთების თანხებს არ ვყოფთ ვარაუდით
+          return null; // Missing historical prices cannot be reconstructed safely.
         }
         function addProductRow() {
           const div = document.createElement("div");
@@ -4816,9 +4833,8 @@
                     : [x.brand, x.name].filter(Boolean).join(" ") +
                       " × " +
                       (x.quantity ?? 1) +
-                      (Number.isFinite(Number(x.unit_price)) &&
-                      x.unit_price != null
-                        ? " · " + money(x.unit_price) + "/ც"
+                      (orderUnitPrice(x) !== undefined
+                        ? " · " + money(orderUnitPrice(x)) + "/ც"
                         : ""),
                 )
                 .join("; ");
@@ -5179,7 +5195,7 @@
               addEditProductRow({
                 name: [item.brand, item.name].filter(Boolean).join(" "),
                 quantity: item.quantity || 1,
-                unit_price: item.unit_price ?? undefined,
+                unit_price: orderUnitPrice(item),
               });
           }
           $("editTitle").textContent = "შეკვეთის #" + order.id + " რედაქტირება";
